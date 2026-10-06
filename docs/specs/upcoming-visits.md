@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Status | Approved, 2026-10-06 |
-| Architect | Arun Joseph |
+| Architect | Code & Agents |
 | Acceptance tests | `spring-petclinic-visits-service/src/test/java/org/springframework/samples/petclinic/visits/web/UpcomingVisitsAcceptanceTest.java` (committed with this spec; they fail until the feature exists) |
 
 ## Why
