@@ -13,6 +13,7 @@ import org.springframework.samples.petclinic.customers.model.PetRepository;
 import org.springframework.samples.petclinic.customers.model.PetType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 
@@ -93,10 +94,78 @@ class PetResourceTest {
         verify(petRepository, never()).save(any());
     }
 
+    @Test
+    void shouldUpdateAPetThroughTheUrlIdentifiers() throws Exception {
+        Pet pet = setupPet();
+        PetType hamster = new PetType();
+        hamster.setId(6);
+        given(petRepository.findById(2)).willReturn(Optional.of(pet));
+        given(petRepository.findPetTypeById(6)).willReturn(Optional.of(hamster));
+
+        mvc.perform(put("/owners/1/pets/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":2,\"name\":\"Renamed\",\"birthDate\":\"2012-08-05\",\"typeId\":6}"))
+            .andExpect(status().isNoContent());
+
+        verify(petRepository).save(pet);
+    }
+
+    @Test
+    void shouldRejectUpdateWhenBodyIdDiffersFromUrlPetId() throws Exception {
+        given(petRepository.findById(2)).willReturn(Optional.of(setupPet()));
+        given(petRepository.findById(3)).willReturn(Optional.of(setupPet()));
+
+        mvc.perform(put("/owners/1/pets/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":3,\"name\":\"Hijack\",\"birthDate\":\"2012-08-05\",\"typeId\":6}"))
+            .andExpect(status().isBadRequest());
+
+        verify(petRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldNotUpdateAPetThroughAnotherOwnersUrl() throws Exception {
+        given(petRepository.findById(2)).willReturn(Optional.of(setupPet())); // owned by owner 1
+
+        mvc.perform(put("/owners/99/pets/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":2,\"name\":\"Hijack\",\"birthDate\":\"2012-08-05\",\"typeId\":6}"))
+            .andExpect(status().isNotFound());
+
+        verify(petRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectCreatingAPetWithAnUnknownType() throws Exception {
+        given(ownerRepository.findById(1)).willReturn(Optional.of(setupPet().getOwner()));
+        given(petRepository.findPetTypeById(999)).willReturn(Optional.empty());
+
+        mvc.perform(post("/owners/1/pets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":0,\"name\":\"Typeless\",\"birthDate\":\"2020-01-01\",\"typeId\":999}"))
+            .andExpect(status().isBadRequest());
+
+        verify(petRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectUpdatingAPetWithAnUnknownType() throws Exception {
+        given(petRepository.findById(2)).willReturn(Optional.of(setupPet()));
+        given(petRepository.findPetTypeById(999)).willReturn(Optional.empty());
+
+        mvc.perform(put("/owners/1/pets/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":2,\"name\":\"Basil\",\"birthDate\":\"2012-08-05\",\"typeId\":999}"))
+            .andExpect(status().isBadRequest());
+
+        verify(petRepository, never()).save(any());
+    }
+
     private Pet setupPet() {
         Owner owner = new Owner();
         owner.setFirstName("George");
         owner.setLastName("Bush");
+        ReflectionTestUtils.setField(owner, "id", 1);
 
         Pet pet = new Pet();
 

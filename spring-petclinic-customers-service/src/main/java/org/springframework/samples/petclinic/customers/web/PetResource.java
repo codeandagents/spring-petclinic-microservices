@@ -23,8 +23,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.customers.model.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Juergen Hoeller
@@ -60,27 +62,41 @@ class PetResource {
 
         Owner owner = ownerRepository.findById(ownerId)
             .orElseThrow(() -> new ResourceNotFoundException("Owner " + ownerId + " not found"));
+        final PetType type = findPetTypeById(petRequest.typeId());
 
         final Pet pet = new Pet();
         owner.addPet(pet);
-        return save(pet, petRequest);
+        return save(pet, petRequest, type);
     }
 
-    @PutMapping("/owners/*/pets/{petId}")
+    @PutMapping("/owners/{ownerId}/pets/{petId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void processUpdateForm(@Valid @RequestBody PetRequest petRequest) {
-        int petId = petRequest.id();
+    public void processUpdateForm(
+        @Valid @RequestBody PetRequest petRequest,
+        @PathVariable("ownerId") int ownerId,
+        @PathVariable("petId") int petId) {
+
+        if (petRequest.id() != petId) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Pet id " + petRequest.id() + " in the body does not match " + petId + " in the URL");
+        }
         Pet pet = findPetById(petId);
-        save(pet, petRequest);
+        if (!Objects.equals(pet.getOwner().getId(), ownerId)) {
+            throw new ResourceNotFoundException("Pet " + petId + " not found for owner " + ownerId);
+        }
+        save(pet, petRequest, findPetTypeById(petRequest.typeId()));
     }
 
-    private Pet save(final Pet pet, final PetRequest petRequest) {
+    private PetType findPetTypeById(int typeId) {
+        return petRepository.findPetTypeById(typeId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pet type " + typeId + " not found"));
+    }
+
+    private Pet save(final Pet pet, final PetRequest petRequest, final PetType type) {
 
         pet.setName(petRequest.name());
         pet.setBirthDate(petRequest.birthDate());
-
-        petRepository.findPetTypeById(petRequest.typeId())
-            .ifPresent(pet::setType);
+        pet.setType(type);
 
         log.info("Saving pet {}", pet);
         return petRepository.save(pet);
