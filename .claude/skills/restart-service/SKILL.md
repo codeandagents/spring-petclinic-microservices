@@ -19,9 +19,9 @@ Which service to restart:
   -> `api-gateway` (the UI is served from its jar, so a browser refresh alone shows the old page).
 - config-server and discovery-server are never restarted this way.
 
-What the script does: removes the service's old instance from Eureka, stops its java process,
+What the script does: stops the service's java process, removes its old instance from Eureka,
 rebuilds its jar (`mvnw package -DskipTests`), starts it, waits until it is registered, and waits
-until the gateway has answered 10 calls in a row through it. Removing the old instance first matters:
+until the gateway has answered 10 calls in a row through it. Removing the old instance matters:
 a killed instance stays in Eureka for about 90 seconds and the gateway keeps sending calls to it.
 
 It takes one to two minutes per service, so give the command a timeout of at least 5 minutes.

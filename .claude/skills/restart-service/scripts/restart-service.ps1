@@ -4,7 +4,7 @@
 #
 # Why not just stop and start the java process: a killed instance stays registered in Eureka
 # (about 90 s) and the gateway keeps sending calls to it, which fail (405 from the fallback, 503).
-# So the old instance is removed from Eureka first, and the script only reports "ready" once the
+# So the old instance is removed from Eureka right after the stop, and the script only reports "ready" once the
 # gateway has routed 10 calls in a row to the new one.
 
 param(
