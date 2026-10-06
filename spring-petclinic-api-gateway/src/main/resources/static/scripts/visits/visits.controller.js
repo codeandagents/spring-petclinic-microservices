@@ -20,6 +20,6 @@ angular.module('visits')
 
             $http.post(url, data).then(function () {
                 $state.go('ownerDetails', { ownerId: $stateParams.ownerId });
-            });
+            }).catch(angular.noop); // the interceptor already alerted
         };
     }]);

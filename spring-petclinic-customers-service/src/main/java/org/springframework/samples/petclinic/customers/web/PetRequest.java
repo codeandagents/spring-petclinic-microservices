@@ -26,9 +26,9 @@ import java.util.Date;
  */
 record PetRequest(int id,
                   @JsonFormat(pattern = "yyyy-MM-dd")
-                  @PastOrPresent
+                  @PastOrPresent(message = "Birth date cannot be in the future")
                   Date birthDate,
-                  @Size(min = 1)
+                  @Size(min = 1, message = "Name is required")
                   String name,
                   int typeId
 ) {

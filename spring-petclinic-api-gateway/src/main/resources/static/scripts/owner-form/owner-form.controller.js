@@ -20,11 +20,11 @@ angular.module('ownerForm')
             if (id) {
                 $http.put('api/customer/owners/' + id, self.owner).then(function () {
                     $state.go('ownerDetails', {ownerId: ownerId});
-                });
+                }).catch(angular.noop); // the interceptor already alerted
             } else {
                 $http.post('api/customer/owners', self.owner).then(function () {
                     $state.go('owners');
-                });
+                }).catch(angular.noop); // the interceptor already alerted
             }
         };
     }]);

@@ -76,7 +76,24 @@ class PetResourceTest {
         mvc.perform(post("/owners/1/pets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":0,\"name\":\"Future\",\"birthDate\":\"2999-01-01\",\"typeId\":2}"))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors[0].field").value("birthDate"))
+            .andExpect(jsonPath("$.errors[0].defaultMessage").value("Birth date cannot be in the future"));
+
+        verify(petRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectCreatingAPetWithABlankName() throws Exception {
+        given(ownerRepository.findById(1)).willReturn(Optional.of(setupPet().getOwner()));
+
+        mvc.perform(post("/owners/1/pets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":0,\"name\":\"\",\"birthDate\":\"2020-01-01\",\"typeId\":2}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.errors[0].field").value("name"))
+            .andExpect(jsonPath("$.errors[0].defaultMessage").value("Name is required"));
 
         verify(petRepository, never()).save(any());
     }
@@ -89,7 +106,23 @@ class PetResourceTest {
         mvc.perform(put("/owners/1/pets/2")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"id\":2,\"name\":\"Basil\",\"birthDate\":\"2999-01-01\",\"typeId\":6}"))
-            .andExpect(status().isBadRequest());
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors[0].field").value("birthDate"))
+            .andExpect(jsonPath("$.errors[0].defaultMessage").value("Birth date cannot be in the future"));
+
+        verify(petRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectUpdatingAPetWithABlankName() throws Exception {
+        given(petRepository.findById(2)).willReturn(Optional.of(setupPet()));
+
+        mvc.perform(put("/owners/1/pets/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":2,\"name\":\"\",\"birthDate\":\"2012-08-05\",\"typeId\":6}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors[0].field").value("name"))
+            .andExpect(jsonPath("$.errors[0].defaultMessage").value("Name is required"));
 
         verify(petRepository, never()).save(any());
     }

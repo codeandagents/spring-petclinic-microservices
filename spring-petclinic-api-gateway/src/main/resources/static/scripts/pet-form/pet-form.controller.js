@@ -28,7 +28,12 @@ angular.module('petForm')
             }
         });
 
+        self.errors = null;
+        var now = new Date();
+        self.today = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+
         self.submit = function () {
+            self.errors = null;
             var id = self.pet.id || 0;
 
             var data = {
@@ -40,13 +45,23 @@ angular.module('petForm')
 
             var req;
             if (id) {
-                req = $http.put("api/customer/owners/" + ownerId + "/pets/" + id, data);
+                req = $http.put("api/customer/owners/" + ownerId + "/pets/" + id, data, {handleErrorsLocally: true});
             } else {
-                req = $http.post("api/customer/owners/" + ownerId + "/pets", data);
+                req = $http.post("api/customer/owners/" + ownerId + "/pets", data, {handleErrorsLocally: true});
             }
 
             req.then(function () {
                 $state.go('ownerDetails', {ownerId: ownerId});
+            }).catch(function (response) {
+                var body = response && response.data;
+                var list = response && response.status === 400 && body && angular.isArray(body.errors) ? body.errors : [];
+                if (list.length) {
+                    self.errors = list.map(function (e) {
+                        return e.defaultMessage;
+                    });
+                } else {
+                    self.errors = ["Could not save the pet"];
+                }
             });
         };
     }]);
