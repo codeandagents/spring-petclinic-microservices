@@ -18,6 +18,7 @@ package org.springframework.samples.petclinic.api.application;
 import org.springframework.samples.petclinic.api.dto.OwnerDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -30,6 +31,13 @@ public class CustomersServiceClient {
 
     public CustomersServiceClient(WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
+    }
+
+    public Flux<OwnerDetails> getOwners() {
+        return webClientBuilder.build().get()
+            .uri("http://customers-service/owners")
+            .retrieve()
+            .bodyToFlux(OwnerDetails.class);
     }
 
     public Mono<OwnerDetails> getOwner(final int ownerId) {

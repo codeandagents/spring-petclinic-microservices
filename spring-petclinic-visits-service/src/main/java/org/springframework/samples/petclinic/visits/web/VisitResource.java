@@ -15,13 +15,18 @@
  */
 package org.springframework.samples.petclinic.visits.web;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 import io.micrometer.core.annotation.Timed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.visits.model.Visit;
 import org.springframework.samples.petclinic.visits.model.VisitRepository;
@@ -49,8 +54,15 @@ class VisitResource {
 
     private final VisitRepository visitRepository;
 
-    VisitResource(VisitRepository visitRepository) {
+    private final Clock clock;
+
+    private final ZoneId clinicZone;
+
+    VisitResource(VisitRepository visitRepository, Clock clock,
+                  @Value("${petclinic.clinic.time-zone:UTC}") ZoneId clinicZone) {
         this.visitRepository = visitRepository;
+        this.clock = clock;
+        this.clinicZone = clinicZone;
     }
 
     @PostMapping("owners/*/pets/{petId}/visits")
@@ -73,6 +85,13 @@ class VisitResource {
     public Visits read(@RequestParam("petId") List<Integer> petIds) {
         final List<Visit> byPetIdIn = visitRepository.findByPetIdIn(petIds);
         return new Visits(byPetIdIn);
+    }
+
+    @GetMapping("visits/upcoming")
+    public Visits upcoming(@RequestParam(name = "days", defaultValue = "7") @Min(1) @Max(31) int days) {
+        // "Today" is the clinic's today: the clock's instant, in the clinic's zone (not the server's).
+        final LocalDate today = LocalDate.ofInstant(clock.instant(), clinicZone);
+        return new Visits(visitRepository.findByDateBetweenOrderByDateAscIdAsc(today, today.plusDays(days - 1L)));
     }
 
     record Visits(
