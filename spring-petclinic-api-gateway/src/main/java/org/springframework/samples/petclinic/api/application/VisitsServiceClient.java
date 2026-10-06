@@ -16,7 +16,10 @@
 package org.springframework.samples.petclinic.api.application;
 
 import org.springframework.samples.petclinic.api.dto.Visits;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -45,6 +48,20 @@ public class VisitsServiceClient {
             .uri(hostname + "pets/visits?petId={petId}", joinIds(petIds))
             .retrieve()
             .bodyToMono(Visits.class);
+    }
+
+    /**
+     * Visits from the clinic's today for {@code days} days; {@code null} leaves the count to visits-service.
+     * A {@code days} value that visits-service rejects becomes a 400 here too.
+     */
+    public Mono<Visits> getUpcomingVisits(final Integer days) {
+        return webClientBuilder.build()
+            .get()
+            .uri(hostname + "visits/upcoming" + (days == null ? "" : "?days={days}"), days)
+            .retrieve()
+            .bodyToMono(Visits.class)
+            .onErrorMap(WebClientResponseException.BadRequest.class,
+                e -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid days", e));
     }
 
     private String joinIds(List<Integer> petIds) {

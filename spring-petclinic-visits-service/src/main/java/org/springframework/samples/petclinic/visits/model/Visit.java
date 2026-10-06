@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
  * Simple JavaBean domain object representing a visit.
@@ -37,9 +37,8 @@ public class Visit {
     private Integer id;
 
     @Column(name = "visit_date")
-    @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private Date date = new Date();
+    private LocalDate date = LocalDate.now();
 
     @Size(max = 8192)
     @Column(name = "description")
@@ -52,7 +51,7 @@ public class Visit {
         return this.id;
     }
 
-    public Date getDate() {
+    public LocalDate getDate() {
         return this.date;
     }
 
@@ -68,7 +67,7 @@ public class Visit {
         this.id = id;
     }
 
-    public void setDate(Date date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 
@@ -83,7 +82,7 @@ public class Visit {
 
     public static final class VisitBuilder {
         private Integer id;
-        private Date date;
+        private LocalDate date;
         private @Size(max = 8192) String description;
         private int petId;
 
@@ -99,7 +98,7 @@ public class Visit {
             return this;
         }
 
-        public VisitBuilder date(Date date) {
+        public VisitBuilder date(LocalDate date) {
             this.date = date;
             return this;
         }

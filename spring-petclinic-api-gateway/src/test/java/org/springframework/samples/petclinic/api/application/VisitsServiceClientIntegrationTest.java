@@ -9,11 +9,15 @@ import org.springframework.samples.petclinic.api.dto.Visits;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class VisitsServiceClientIntegrationTest {
 
@@ -44,6 +48,34 @@ class VisitsServiceClientIntegrationTest {
         assertVisitDescriptionEquals(visits.block(), PET_ID,"test visit");
     }
 
+    @Test
+    void getUpcomingVisits_sendsDaysWhenGiven() throws InterruptedException {
+        prepareResponse();
+
+        Visits visits = visitsServiceClient.getUpcomingVisits(3).block();
+
+        assertVisitDescriptionEquals(visits, PET_ID, "test visit");
+        assertEquals("/visits/upcoming?days=3", server.takeRequest().getPath());
+    }
+
+    @Test
+    void getUpcomingVisits_leavesDaysOutWhenNotGiven() throws InterruptedException {
+        prepareResponse();
+
+        visitsServiceClient.getUpcomingVisits(null).block();
+
+        assertEquals("/visits/upcoming", server.takeRequest().getPath());
+    }
+
+    @Test
+    void getUpcomingVisits_mapsABadRequestToABadRequest() {
+        server.enqueue(new MockResponse.Builder().code(400).build());
+
+        ResponseStatusException e = assertThrows(ResponseStatusException.class,
+            () -> visitsServiceClient.getUpcomingVisits(0).block());
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
+    }
 
     private void assertVisitDescriptionEquals(Visits visits, int petId, String description) {
         assertEquals(1, visits.items().size());

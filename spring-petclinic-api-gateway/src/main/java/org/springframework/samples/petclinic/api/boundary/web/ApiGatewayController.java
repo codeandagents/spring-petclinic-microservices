@@ -20,14 +20,20 @@ import org.springframework.cloud.client.circuitbreaker.ReactiveCircuitBreakerFac
 import org.springframework.samples.petclinic.api.application.CustomersServiceClient;
 import org.springframework.samples.petclinic.api.application.VisitsServiceClient;
 import org.springframework.samples.petclinic.api.dto.OwnerDetails;
+import org.springframework.samples.petclinic.api.dto.PetDetails;
+import org.springframework.samples.petclinic.api.dto.UpcomingVisit;
+import org.springframework.samples.petclinic.api.dto.UpcomingVisits;
 import org.springframework.samples.petclinic.api.dto.Visits;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -63,6 +69,33 @@ public class ApiGatewayController {
                     .map(addVisitsToOwner(owner))
             );
 
+    }
+
+    @GetMapping(value = "visits/upcoming")
+    public Mono<UpcomingVisits> getUpcomingVisits(@RequestParam(required = false) Integer days) {
+        // Visits first, so a days value that visits-service rejects is a 400 before customers-service is asked.
+        return visitsServiceClient.getUpcomingVisits(days)
+            .flatMap(visits -> customersServiceClient.getOwners().collectList()
+                .map(owners -> withPetAndOwner(visits, owners)));
+    }
+
+    private UpcomingVisits withPetAndOwner(Visits visits, List<OwnerDetails> owners) {
+        Map<Integer, PetDetails> petsById = new HashMap<>();
+        Map<Integer, OwnerDetails> ownersByPetId = new HashMap<>();
+        owners.forEach(owner -> owner.pets().forEach(pet -> {
+            petsById.put(pet.id(), pet);
+            ownersByPetId.put(pet.id(), owner);
+        }));
+        // A visit whose pet customers-service doesn't know has no owner to show: left out.
+        return new UpcomingVisits(visits.items().stream()
+            .filter(v -> petsById.containsKey(v.petId()))
+            .map(v -> {
+                PetDetails pet = petsById.get(v.petId());
+                OwnerDetails owner = ownersByPetId.get(v.petId());
+                return new UpcomingVisit(v.id(), v.date(), v.description(), v.petId(), pet.name(),
+                    owner.id(), owner.firstName() + " " + owner.lastName());
+            })
+            .toList());
     }
 
     private Function<Visits, OwnerDetails> addVisitsToOwner(OwnerDetails owner) {
