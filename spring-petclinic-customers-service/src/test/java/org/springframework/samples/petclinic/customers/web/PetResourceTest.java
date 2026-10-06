@@ -16,8 +16,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -60,6 +65,32 @@ class PetResourceTest {
 
         mvc.perform(get("/owners/2/pets/99").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldRejectCreatingAPetWithAFutureBirthDate() throws Exception {
+        Pet pet = setupPet();
+        given(ownerRepository.findById(1)).willReturn(Optional.of(pet.getOwner()));
+
+        mvc.perform(post("/owners/1/pets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":0,\"name\":\"Future\",\"birthDate\":\"2999-01-01\",\"typeId\":2}"))
+            .andExpect(status().isBadRequest());
+
+        verify(petRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectUpdatingAPetWithAFutureBirthDate() throws Exception {
+        Pet pet = setupPet();
+        given(petRepository.findById(2)).willReturn(Optional.of(pet));
+
+        mvc.perform(put("/owners/1/pets/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"id\":2,\"name\":\"Basil\",\"birthDate\":\"2999-01-01\",\"typeId\":6}"))
+            .andExpect(status().isBadRequest());
+
+        verify(petRepository, never()).save(any());
     }
 
     private Pet setupPet() {
