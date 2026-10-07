@@ -1,6 +1,7 @@
 > **Fork used in the [Code & Agents](https://github.com/codeandagents) series "From Java Developer to AI Engineer".**
 > Upstream: [spring-petclinic/spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices) at tag `series1-base`.
 > Changes made in each episode are on branches `ep01-*`, `ep02-*`, ... and tagged `ep01-final`, `ep02-final`, ...
+> Follow along with an episode, every prompt and check: [`docs/follow-along/`](docs/follow-along/).
 > Everything else is the upstream project, unchanged (Apache-2.0).
 
 # Distributed version of the Spring PetClinic Sample Application built with Spring Cloud and Spring AI
